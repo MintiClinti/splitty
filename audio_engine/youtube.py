@@ -12,7 +12,6 @@ YOUTUBE_PATTERN = re.compile(
 
 _YT_DLP_COMMON_ARGS = [
     "--no-playlist",
-    "--extractor-args", "youtube:player_client=android",
 ]
 
 _COOKIES_FILE = Path("/tmp/yt_cookies.txt")
