@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import re
@@ -14,19 +15,24 @@ _YT_DLP_COMMON_ARGS = [
     "--extractor-args", "youtube:player_client=android",
 ]
 
+_COOKIES_FILE = Path("/tmp/yt_cookies.txt")
+
+
+def _ensure_cookies() -> None:
+    """Decode YT_COOKIES_B64 env var to a cookies file if not already present."""
+    if _COOKIES_FILE.exists():
+        return
+    b64 = os.environ.get("YT_COOKIES_B64", "")
+    if b64:
+        _COOKIES_FILE.write_bytes(base64.b64decode(b64))
+
 
 def _auth_args() -> list[str]:
-    """Return yt-dlp auth flags based on available credentials."""
-    cookies_path = os.environ.get("YT_COOKIES_PATH", "")
-    if cookies_path and Path(cookies_path).is_file():
-        return ["--cookies", cookies_path]
-    token_dir = Path(os.environ.get("YT_TOKEN_DIR", "/app/backend/data/yt-oauth"))
-    token_dir.mkdir(parents=True, exist_ok=True)
-    return [
-        "--username", "oauth2",
-        "--password", "",
-        "--cache-dir", str(token_dir),
-    ]
+    """Return yt-dlp auth flags if cookies are available."""
+    _ensure_cookies()
+    if _COOKIES_FILE.is_file():
+        return ["--cookies", str(_COOKIES_FILE)]
+    return []
 
 
 def validate_youtube_url(url: str) -> bool:

@@ -12,3 +12,4 @@ data/tmp/
 backend/.env
 frontend/.npm-cache/
 backend/data/
+cookies.txt
