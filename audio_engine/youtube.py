@@ -78,6 +78,7 @@ def download_audio(url: str, output_dir: Path, file_stem: str) -> Path:
             "yt-dlp",
             *_YT_DLP_COMMON_ARGS,
             *_auth_args(),
+            "-f", "bestaudio",
             "-x",
             "--audio-format", "mp3",
             "-o", str(output_template),
