@@ -28,6 +28,9 @@ def _ensure_cookies() -> None:
 
 def _auth_args() -> list[str]:
     """Return yt-dlp auth flags if cookies are available."""
+    cookies_path = os.environ.get("YT_COOKIES_PATH", "")
+    if cookies_path and Path(cookies_path).is_file():
+        return ["--cookies", cookies_path]
     _ensure_cookies()
     if _COOKIES_FILE.is_file():
         return ["--cookies", str(_COOKIES_FILE)]
@@ -78,7 +81,6 @@ def download_audio(url: str, output_dir: Path, file_stem: str) -> Path:
             "yt-dlp",
             *_YT_DLP_COMMON_ARGS,
             *_auth_args(),
-            "-f", "bestaudio/best",
             "-x",
             "--audio-format", "mp3",
             "-o", str(output_template),
