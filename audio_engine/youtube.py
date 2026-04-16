@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -12,6 +13,20 @@ _YT_DLP_COMMON_ARGS = [
     "--no-playlist",
     "--extractor-args", "youtube:player_client=android",
 ]
+
+
+def _auth_args() -> list[str]:
+    """Return yt-dlp auth flags based on available credentials."""
+    cookies_path = os.environ.get("YT_COOKIES_PATH", "")
+    if cookies_path and Path(cookies_path).is_file():
+        return ["--cookies", cookies_path]
+    token_dir = Path(os.environ.get("YT_TOKEN_DIR", "/app/backend/data/yt-oauth"))
+    token_dir.mkdir(parents=True, exist_ok=True)
+    return [
+        "--username", "oauth2",
+        "--password", "",
+        "--cache-dir", str(token_dir),
+    ]
 
 
 def validate_youtube_url(url: str) -> bool:
@@ -39,7 +54,7 @@ def _extract_error(stderr: str) -> str:
 def fetch_metadata(url: str) -> dict:
     clean = _clean_url(url)
     result = subprocess.run(
-        ["yt-dlp", *_YT_DLP_COMMON_ARGS, "--dump-single-json", "--skip-download", clean],
+        ["yt-dlp", *_YT_DLP_COMMON_ARGS, *_auth_args(), "--dump-single-json", "--skip-download", clean],
         capture_output=True,
         text=True,
         check=False,
@@ -57,6 +72,7 @@ def download_audio(url: str, output_dir: Path, file_stem: str) -> Path:
         [
             "yt-dlp",
             *_YT_DLP_COMMON_ARGS,
+            *_auth_args(),
             "-x",
             "--audio-format", "mp3",
             "-o", str(output_template),
