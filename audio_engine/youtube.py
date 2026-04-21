@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 import os
 import re
@@ -23,7 +24,11 @@ def _ensure_cookies() -> None:
         return
     b64 = os.environ.get("YT_COOKIES_B64", "")
     if b64:
-        _COOKIES_FILE.write_bytes(base64.b64decode(b64))
+        normalized = "".join(b64.split())
+        try:
+            _COOKIES_FILE.write_bytes(base64.b64decode(normalized, validate=True))
+        except binascii.Error as exc:
+            raise RuntimeError("YT_COOKIES_B64 is not valid base64") from exc
 
 
 def _auth_args() -> list[str]:

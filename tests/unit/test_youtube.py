@@ -1,7 +1,9 @@
+import base64
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
-from audio_engine.youtube import download_audio
+from audio_engine.youtube import _auth_args, download_audio
 
 
 def test_download_audio_retries_when_selected_format_is_unavailable(tmp_path):
@@ -44,3 +46,24 @@ def test_download_audio_retries_when_selected_format_is_unavailable(tmp_path):
 
     assert output.name == "job-1.mp3"
     assert [call[call.index("-f") + 1] for call in calls] == ["251", "bestaudio/best"]
+
+
+def test_auth_args_uses_runtime_base64_cookie_secret(tmp_path):
+    import audio_engine.youtube as youtube
+
+    cookie_path = tmp_path / "yt_cookies.txt"
+    cookie_body = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tvalue\n"
+    original_cookies_file = youtube._COOKIES_FILE
+    original_env = os.environ.copy()
+    youtube._COOKIES_FILE = cookie_path
+    os.environ.pop("YT_COOKIES_PATH", None)
+    os.environ["YT_COOKIES_B64"] = base64.b64encode(cookie_body.encode()).decode()
+    try:
+        args = _auth_args()
+    finally:
+        youtube._COOKIES_FILE = original_cookies_file
+        os.environ.clear()
+        os.environ.update(original_env)
+
+    assert args == ["--cookies", str(cookie_path)]
+    assert cookie_path.read_text() == cookie_body

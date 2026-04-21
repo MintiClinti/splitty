@@ -14,11 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY audio_engine/ ./audio_engine/
 
-ARG YT_COOKIES_B64=""
-RUN if [ -n "$YT_COOKIES_B64" ]; then echo "$YT_COOKIES_B64" | base64 -d > /app/yt_cookies.txt; fi
-
 ENV PYTHONPATH=/app:/app/backend
-ENV YT_COOKIES_PATH=/app/yt_cookies.txt
 WORKDIR /app/backend
 EXPOSE 8000
 
