@@ -17,7 +17,7 @@ def run_analysis(job_id: str, youtube_url: str) -> None:
         metadata = fetch_metadata(youtube_url)
 
         repository.update_job(job_id, stage="downloading_audio", progress=30)
-        source_path = download_audio(youtube_url, settings.data_dir / "downloads", file_stem=job_id)
+        source_path = download_audio(youtube_url, settings.data_dir / "downloads", file_stem=job_id, metadata=metadata)
 
         video = repository.create_video(job_id=job_id, youtube_url=youtube_url, metadata=metadata, source_path=str(source_path))
 

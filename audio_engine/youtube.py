@@ -59,6 +59,10 @@ def _extract_error(stderr: str) -> str:
     return stderr.strip()[:300] or "yt-dlp failed (unknown reason)"
 
 
+def _is_unavailable_format_error(stderr: str) -> bool:
+    return "Requested format is not available" in stderr
+
+
 def fetch_metadata(url: str) -> dict:
     clean = _clean_url(url)
     result = subprocess.run(
@@ -72,15 +76,31 @@ def fetch_metadata(url: str) -> dict:
     return json.loads(result.stdout)
 
 
-def download_audio(url: str, output_dir: Path, file_stem: str) -> Path:
-    clean = _clean_url(url)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_template = output_dir / f"{file_stem}.%(ext)s"
-    result = subprocess.run(
+def _pick_audio_format(metadata: dict) -> str | None:
+    """Pick the best audio format ID from metadata, preferring audio-only streams."""
+    formats = metadata.get("formats") or []
+    audio_only = [
+        f for f in formats
+        if f.get("acodec") != "none" and f.get("vcodec") in ("none", None)
+        and f.get("url")
+    ]
+    if audio_only:
+        best = max(audio_only, key=lambda f: f.get("abr") or 0)
+        return str(best["format_id"])
+    with_audio = [f for f in formats if f.get("acodec") != "none" and f.get("url")]
+    if with_audio:
+        best = max(with_audio, key=lambda f: f.get("abr") or 0)
+        return str(best["format_id"])
+    return None
+
+
+def _run_download(clean: str, output_template: Path, fmt_args: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
         [
             "yt-dlp",
             *_YT_DLP_COMMON_ARGS,
             *_auth_args(),
+            *fmt_args,
             "-x",
             "--audio-format", "mp3",
             "-o", str(output_template),
@@ -90,8 +110,37 @@ def download_audio(url: str, output_dir: Path, file_stem: str) -> Path:
         text=True,
         check=False,
     )
-    if result.returncode != 0:
-        raise RuntimeError(_extract_error(result.stderr))
+
+
+def download_audio(url: str, output_dir: Path, file_stem: str, metadata: dict | None = None) -> Path:
+    clean = _clean_url(url)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_template = output_dir / f"{file_stem}.%(ext)s"
+
+    fmt_args: list[str] = []
+    if metadata:
+        fmt_id = _pick_audio_format(metadata)
+        if fmt_id:
+            fmt_args = ["-f", fmt_id]
+
+    attempt_formats = [fmt_args] if fmt_args else []
+    fallback_args = ["-f", "bestaudio/best"]
+    if not attempt_formats or attempt_formats[-1] != fallback_args:
+        attempt_formats.append(fallback_args)
+
+    last_error = "yt-dlp failed (unknown reason)"
+    # Retry once with a generic selector when a metadata-picked format disappears.
+    for index, current_fmt_args in enumerate(attempt_formats):
+        result = _run_download(clean, output_template, current_fmt_args)
+        if result.returncode == 0:
+            break
+
+        last_error = _extract_error(result.stderr)
+        is_last_attempt = index == len(attempt_formats) - 1
+        if is_last_attempt or not _is_unavailable_format_error(result.stderr):
+            raise RuntimeError(last_error)
+    else:
+        raise RuntimeError(last_error)
 
     matches = sorted(output_dir.glob(f"{file_stem}.*"))
     if not matches:
