@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { createExport, createJob, getDownloadUrl, getExport, getJob, getPreview } from "./api/client";
+import { createExport, createJob, createUploadJob, getDownloadUrl, getExport, getJob, getPreview } from "./api/client";
 import { SegmentTable } from "./components/SegmentTable";
 
 export function App() {
   const [url, setUrl] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [jobId, setJobId] = useState(null);
   const [jobStatus, setJobStatus] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -46,15 +49,41 @@ export function App() {
 
   const canExport = useMemo(() => preview?.segments?.length && jobStatus?.status === "preview_ready", [preview, jobStatus]);
 
-  const onSubmit = async (event) => {
-    event.preventDefault();
+  const resetForNewJob = () => {
     setError("");
     setPreview(null);
     setExportState(null);
+    setNames([]);
+    setJobId(null);
+    setJobStatus(null);
+  };
+
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    resetForNewJob();
     try {
       const response = await createJob(url.trim());
       setJobId(response.jobId);
       setJobStatus({ status: response.status });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const onUploadSubmit = async (event) => {
+    event.preventDefault();
+    if (!uploadFile) {
+      setError("Choose an audio file to upload.");
+      return;
+    }
+    resetForNewJob();
+    try {
+      const response = await createUploadJob(uploadFile, uploadTitle.trim());
+      setJobId(response.jobId);
+      setJobStatus({ status: response.status });
+      setUploadFile(null);
+      setUploadTitle("");
+      setFileInputKey((current) => current + 1);
     } catch (err) {
       setError(err.message);
     }
@@ -81,12 +110,36 @@ export function App() {
   return (
     <main className="container">
       <h1>Splitty MVP</h1>
-      <p>Paste a YouTube URL to split audio by chapters or fallback boundaries.</p>
+      <p>Analyze a local YouTube URL flow or upload an audio file for hosted use.</p>
 
-      <form onSubmit={onSubmit} className="url-form">
-        <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(event) => setUrl(event.target.value)} required />
-        <button type="submit">Analyze</button>
-      </form>
+      <section className="panel">
+        <h2>Analyze YouTube URL</h2>
+        <p className="hint">Best when your backend is running locally with `yt-dlp` and `ffmpeg` installed.</p>
+        <form onSubmit={onSubmit} className="stack-form">
+          <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(event) => setUrl(event.target.value)} required />
+          <button type="submit">Analyze URL</button>
+        </form>
+      </section>
+
+      <section className="panel">
+        <h2>Upload Audio File</h2>
+        <p className="hint">Use this path on hosted deployments to skip server-side YouTube downloading.</p>
+        <form onSubmit={onUploadSubmit} className="stack-form">
+          <input
+            key={fileInputKey}
+            type="file"
+            accept="audio/*,video/mp4,video/webm,video/quicktime"
+            onChange={(event) => setUploadFile(event.target.files?.[0] || null)}
+            required
+          />
+          <input
+            placeholder="Optional title"
+            value={uploadTitle}
+            onChange={(event) => setUploadTitle(event.target.value)}
+          />
+          <button type="submit">Upload and Analyze</button>
+        </form>
+      </section>
 
       {jobId && (
         <section className="panel">
@@ -103,6 +156,7 @@ export function App() {
         <section className="panel">
           <h2>Preview</h2>
           <p><strong>Video:</strong> {preview.video.title || "Untitled"}</p>
+          <p><strong>Source:</strong> {preview.video.sourceType === "upload" ? "Uploaded file" : "YouTube URL"}</p>
           <SegmentTable segments={preview.segments} names={names} onNameChange={onNameChange} />
           <button onClick={onExport} disabled={!canExport}>Export zip</button>
         </section>

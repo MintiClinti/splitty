@@ -14,13 +14,12 @@ body {
   padding: 2rem;
 }
 
-.url-form {
+.stack-form {
   display: grid;
-  grid-template-columns: 1fr auto;
   gap: 0.75rem;
 }
 
-.url-form input {
+.stack-form input {
   padding: 0.65rem;
 }
 
@@ -52,4 +51,9 @@ button {
 
 .error {
   color: #b00020;
+}
+
+.hint {
+  margin-top: 0;
+  color: #5d6472;
 }

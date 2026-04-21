@@ -10,10 +10,15 @@ Split long-form YouTube audio into segment clips (MVP).
 
 ## MVP Features
 - Submit YouTube URL
+- Upload local audio/video files for hosted analysis
 - Chapter-first splitting (metadata/description)
 - Fallback silence/low-energy style segmentation via ffmpeg `silencedetect`
 - Segment preview with start/end/name/strategy
 - Export split clips + `timestamps.csv` + `timestamps.txt` as zip
+
+## Ingestion Modes
+- Local backend: paste a YouTube URL and let `yt-dlp` download audio
+- Hosted backend: upload an audio/video file to avoid server-side YouTube auth issues
 
 ## Local setup
 1. Backend dependencies:

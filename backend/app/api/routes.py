@@ -1,21 +1,52 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from app.core.config import settings
 from app.models import repository
 from app.schemas import CreateJobRequest, ExportRequest, ExportStatusResponse, JobResponse, JobStatusResponse, PreviewResponse, SegmentResponse
-from app.services.analysis_service import run_analysis
+from app.services.analysis_service import run_analysis, run_uploaded_analysis
 from app.services.export_service import run_export
 from app.services.job_runner import job_runner
 
 router = APIRouter(prefix="/api/v1")
+_ALLOWED_UPLOAD_SUFFIXES = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".oga", ".opus", ".webm", ".mp4", ".mov"}
+
+
+def _resolved_upload_suffix(filename: str | None) -> str:
+    suffix = Path(filename or "").suffix.lower()
+    return suffix if suffix in _ALLOWED_UPLOAD_SUFFIXES else ".bin"
+
+
+async def _save_upload(job_id: str, upload: UploadFile) -> Path:
+    destination = settings.data_dir / "downloads" / f"{job_id}{_resolved_upload_suffix(upload.filename)}"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("wb") as handle:
+        while chunk := await upload.read(1024 * 1024):
+            handle.write(chunk)
+    await upload.close()
+    return destination
 
 
 @router.post("/jobs", response_model=JobResponse)
 def create_job(payload: CreateJobRequest):
     job = repository.create_job("analyze")
     job_runner.submit(run_analysis, job["id"], payload.youtubeUrl)
+    return JobResponse(jobId=job["id"], status=job["status"])
+
+
+@router.post("/jobs/upload", response_model=JobResponse)
+async def create_upload_job(file: UploadFile = File(...), title: str | None = Form(None)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Upload must include a filename")
+    if not (file.content_type or "").startswith(("audio/", "video/")) and Path(file.filename).suffix.lower() not in _ALLOWED_UPLOAD_SUFFIXES:
+        raise HTTPException(status_code=400, detail="Unsupported upload type")
+
+    job = repository.create_job("analyze")
+    destination = await _save_upload(job["id"], file)
+    display_title = (title or Path(file.filename).stem).strip() or Path(file.filename).stem
+    job_runner.submit(run_uploaded_analysis, job["id"], str(destination), display_title)
     return JobResponse(jobId=job["id"], status=job["status"])
 
 
@@ -56,7 +87,8 @@ def get_preview(job_id: str):
         video={
             "title": video.get("title"),
             "durationSec": video.get("duration_sec"),
-            "youtubeUrl": video.get("youtube_url"),
+            "youtubeUrl": video.get("youtube_url") or None,
+            "sourceType": "youtube" if video.get("youtube_url") else "upload",
         },
         segments=formatted,
     )
