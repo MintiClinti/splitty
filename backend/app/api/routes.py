@@ -5,8 +5,8 @@ from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.models import repository
-from app.schemas import CreateJobRequest, ExportRequest, ExportStatusResponse, JobResponse, JobStatusResponse, PreviewResponse, SegmentResponse
-from app.services.analysis_service import run_analysis, run_uploaded_analysis
+from app.schemas import ExportRequest, ExportStatusResponse, JobResponse, JobStatusResponse, PreviewResponse, SegmentResponse
+from app.services.analysis_service import run_uploaded_analysis
 from app.services.export_service import run_export
 from app.services.job_runner import job_runner
 
@@ -30,13 +30,6 @@ async def _save_upload(job_id: str, upload: UploadFile) -> Path:
 
 
 @router.post("/jobs", response_model=JobResponse)
-def create_job(payload: CreateJobRequest):
-    job = repository.create_job("analyze")
-    job_runner.submit(run_analysis, job["id"], payload.youtubeUrl)
-    return JobResponse(jobId=job["id"], status=job["status"])
-
-
-@router.post("/jobs/upload", response_model=JobResponse)
 async def create_upload_job(file: UploadFile = File(...), title: str | None = Form(None)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Upload must include a filename")
@@ -87,8 +80,7 @@ def get_preview(job_id: str):
         video={
             "title": video.get("title"),
             "durationSec": video.get("duration_sec"),
-            "youtubeUrl": video.get("youtube_url") or None,
-            "sourceType": "youtube" if video.get("youtube_url") else "upload",
+            "sourceType": "upload",
         },
         segments=formatted,
     )

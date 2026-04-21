@@ -4,8 +4,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir yt-dlp
-
 WORKDIR /app
 
 COPY backend/requirements.txt .

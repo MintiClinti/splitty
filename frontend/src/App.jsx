@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { createExport, createJob, createUploadJob, getDownloadUrl, getExport, getJob, getPreview } from "./api/client";
+import { createExport, createUploadJob, getDownloadUrl, getExport, getJob, getPreview } from "./api/client";
 import { SegmentTable } from "./components/SegmentTable";
 
 export function App() {
-  const [url, setUrl] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadTitle, setUploadTitle] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -58,18 +57,6 @@ export function App() {
     setJobStatus(null);
   };
 
-  const onSubmit = async (event) => {
-    event.preventDefault();
-    resetForNewJob();
-    try {
-      const response = await createJob(url.trim());
-      setJobId(response.jobId);
-      setJobStatus({ status: response.status });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   const onUploadSubmit = async (event) => {
     event.preventDefault();
     if (!uploadFile) {
@@ -110,20 +97,11 @@ export function App() {
   return (
     <main className="container">
       <h1>Splitty MVP</h1>
-      <p>Analyze a local YouTube URL flow or upload an audio file for hosted use.</p>
-
-      <section className="panel">
-        <h2>Analyze YouTube URL</h2>
-        <p className="hint">Best when your backend is running locally with `yt-dlp` and `ffmpeg` installed.</p>
-        <form onSubmit={onSubmit} className="stack-form">
-          <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(event) => setUrl(event.target.value)} required />
-          <button type="submit">Analyze URL</button>
-        </form>
-      </section>
+      <p>Upload an audio or video file, preview the generated splits, then export the clips as a zip.</p>
 
       <section className="panel">
         <h2>Upload Audio File</h2>
-        <p className="hint">Use this path on hosted deployments to skip server-side YouTube downloading.</p>
+        <p className="hint">Hosted deployments now analyze uploads only, so the backend never has to fetch media from YouTube.</p>
         <form onSubmit={onUploadSubmit} className="stack-form">
           <input
             key={fileInputKey}
@@ -156,7 +134,7 @@ export function App() {
         <section className="panel">
           <h2>Preview</h2>
           <p><strong>Video:</strong> {preview.video.title || "Untitled"}</p>
-          <p><strong>Source:</strong> {preview.video.sourceType === "upload" ? "Uploaded file" : "YouTube URL"}</p>
+          <p><strong>Source:</strong> Uploaded file</p>
           <SegmentTable segments={preview.segments} names={names} onNameChange={onNameChange} />
           <button onClick={onExport} disabled={!canExport}>Export zip</button>
         </section>

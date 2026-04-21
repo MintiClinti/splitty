@@ -5,7 +5,6 @@ from app.models import repository
 from audio_engine.chapters import chapters_to_segments, extract_chapters_from_description, extract_chapters_from_metadata
 from audio_engine.postprocess import enforce_min_lengths
 from audio_engine.segment_fallback import detect_fallback_segments, probe_duration
-from audio_engine.youtube import download_audio, fetch_metadata, validate_youtube_url
 
 
 def _build_upload_metadata(source_path: Path, title: str | None) -> dict:
@@ -45,21 +44,6 @@ def _finalize_analysis(job_id: str, source_path: Path, metadata: dict, youtube_u
 
     repository.replace_segments(job_id, video["id"], cleaned)
     repository.update_job(job_id, status="preview_ready", stage="ready_for_preview", progress=100)
-
-
-def run_analysis(job_id: str, youtube_url: str) -> None:
-    try:
-        if not validate_youtube_url(youtube_url):
-            raise ValueError("Invalid YouTube URL format")
-
-        repository.update_job(job_id, status="running", stage="fetching_metadata", progress=10)
-        metadata = fetch_metadata(youtube_url)
-
-        repository.update_job(job_id, stage="downloading_audio", progress=30)
-        source_path = download_audio(youtube_url, settings.data_dir / "downloads", file_stem=job_id, metadata=metadata)
-        _finalize_analysis(job_id, Path(source_path), metadata, youtube_url=youtube_url)
-    except Exception as exc:  # noqa: BLE001
-        repository.update_job(job_id, status="failed", stage="failed", error=str(exc))
 
 
 def run_uploaded_analysis(job_id: str, source_path: str, title: str | None = None) -> None:

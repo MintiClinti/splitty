@@ -17,15 +17,11 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function createJob(youtubeUrl) {
-  return request("/jobs", { method: "POST", body: JSON.stringify({ youtubeUrl }) });
-}
-
 export function createUploadJob(file, title) {
   const body = new FormData();
   body.append("file", file);
   if (title) body.append("title", title);
-  return request("/jobs/upload", { method: "POST", body });
+  return request("/jobs", { method: "POST", body });
 }
 
 export function getJob(jobId) {

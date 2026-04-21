@@ -1,8 +1,4 @@
-from pydantic import BaseModel, Field
-
-
-class CreateJobRequest(BaseModel):
-    youtubeUrl: str = Field(min_length=8)
+from pydantic import BaseModel
 
 
 class JobResponse(BaseModel):
