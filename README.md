@@ -9,7 +9,8 @@ Split long-form audio into segment clips (MVP).
 - `data/`: local runtime artifacts (`downloads`, `segments`, `exports`, `tmp`)
 
 ## MVP Features
-- Upload local audio/video files for hosted analysis
+- Download YouTube audio locally, then upload it for hosted analysis
+- Upload optional chapter text or a generated chapter sidecar to preserve chapter-based splits
 - Chapter-first splitting (metadata/description)
 - Fallback silence/low-energy style segmentation via ffmpeg `silencedetect`
 - Segment preview with start/end/name/strategy
@@ -23,15 +24,20 @@ Split long-form audio into segment clips (MVP).
 3. Required binaries on `PATH`:
    - `ffmpeg`
    - `ffprobe`
+4. Optional local download helper:
+   - `yt-dlp`
 
 ## Run locally
 - Backend:
   - `cd backend && python run.py`
 - Frontend:
   - `cd frontend && npm run dev`
+- Local YouTube download helper:
+  - `python3 scripts/download_youtube_local.py "https://youtube.com/watch?v=..."`
+  - Upload the generated audio file and, if present, the matching `.chapters.txt` sidecar
 
 ## API (MVP)
-- `POST /api/v1/jobs`
+- `POST /api/v1/jobs` (multipart upload: `file`, optional `title`, optional `chapters_text`, optional `chapters_file`)
 - `GET /api/v1/jobs/{jobId}`
 - `GET /api/v1/jobs/{jobId}/preview`
 - `POST /api/v1/jobs/{jobId}/export`

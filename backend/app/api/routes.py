@@ -29,8 +29,23 @@ async def _save_upload(job_id: str, upload: UploadFile) -> Path:
     return destination
 
 
+async def _read_optional_text_upload(upload: UploadFile | None) -> str | None:
+    if upload is None:
+        return None
+    content = await upload.read()
+    await upload.close()
+    if not content:
+        return None
+    return content.decode("utf-8", errors="ignore").strip() or None
+
+
 @router.post("/jobs", response_model=JobResponse)
-async def create_upload_job(file: UploadFile = File(...), title: str | None = Form(None)):
+async def create_upload_job(
+    file: UploadFile = File(...),
+    title: str | None = Form(None),
+    chapters_text: str | None = Form(None),
+    chapters_file: UploadFile | None = File(None),
+):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Upload must include a filename")
     if not (file.content_type or "").startswith(("audio/", "video/")) and Path(file.filename).suffix.lower() not in _ALLOWED_UPLOAD_SUFFIXES:
@@ -39,7 +54,8 @@ async def create_upload_job(file: UploadFile = File(...), title: str | None = Fo
     job = repository.create_job("analyze")
     destination = await _save_upload(job["id"], file)
     display_title = (title or Path(file.filename).stem).strip() or Path(file.filename).stem
-    job_runner.submit(run_uploaded_analysis, job["id"], str(destination), display_title)
+    resolved_chapters = (chapters_text or "").strip() or await _read_optional_text_upload(chapters_file)
+    job_runner.submit(run_uploaded_analysis, job["id"], str(destination), display_title, resolved_chapters)
     return JobResponse(jobId=job["id"], status=job["status"])
 
 

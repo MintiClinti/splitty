@@ -7,13 +7,13 @@ from audio_engine.postprocess import enforce_min_lengths
 from audio_engine.segment_fallback import detect_fallback_segments, probe_duration
 
 
-def _build_upload_metadata(source_path: Path, title: str | None) -> dict:
+def _build_upload_metadata(source_path: Path, title: str | None, chapters_text: str | None = None) -> dict:
     resolved_title = (title or source_path.stem).strip() or source_path.stem
     return {
         "id": None,
         "title": resolved_title,
         "duration": int(probe_duration(source_path)),
-        "description": "",
+        "description": (chapters_text or "").strip(),
         "source": "upload",
         "original_filename": source_path.name,
     }
@@ -46,14 +46,19 @@ def _finalize_analysis(job_id: str, source_path: Path, metadata: dict, youtube_u
     repository.update_job(job_id, status="preview_ready", stage="ready_for_preview", progress=100)
 
 
-def run_uploaded_analysis(job_id: str, source_path: str, title: str | None = None) -> None:
+def run_uploaded_analysis(
+    job_id: str,
+    source_path: str,
+    title: str | None = None,
+    chapters_text: str | None = None,
+) -> None:
     try:
         resolved_path = Path(source_path)
         if not resolved_path.is_file():
             raise FileNotFoundError("Uploaded audio file is missing")
 
         repository.update_job(job_id, status="running", stage="reading_upload", progress=10)
-        metadata = _build_upload_metadata(resolved_path, title)
+        metadata = _build_upload_metadata(resolved_path, title, chapters_text)
         repository.update_job(job_id, stage="processing_upload", progress=35)
         _finalize_analysis(job_id, resolved_path, metadata)
     except Exception as exc:  # noqa: BLE001

@@ -17,10 +17,12 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function createUploadJob(file, title) {
+export function createUploadJob(file, title, chaptersText, chaptersFile) {
   const body = new FormData();
   body.append("file", file);
   if (title) body.append("title", title);
+  if (chaptersText) body.append("chapters_text", chaptersText);
+  if (chaptersFile) body.append("chapters_file", chaptersFile);
   return request("/jobs", { method: "POST", body });
 }
 
