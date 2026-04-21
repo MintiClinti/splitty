@@ -4,11 +4,9 @@ import { SegmentTable } from "./components/SegmentTable";
 
 export function App() {
   const [uploadFile, setUploadFile] = useState(null);
-  const [chaptersFile, setChaptersFile] = useState(null);
   const [chaptersText, setChaptersText] = useState("");
   const [uploadTitle, setUploadTitle] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
-  const [chaptersFileInputKey, setChaptersFileInputKey] = useState(0);
   const [jobId, setJobId] = useState(null);
   const [jobStatus, setJobStatus] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -72,16 +70,13 @@ export function App() {
         uploadFile,
         uploadTitle.trim(),
         chaptersText.trim(),
-        chaptersFile,
       );
       setJobId(response.jobId);
       setJobStatus({ status: response.status });
       setUploadFile(null);
-      setChaptersFile(null);
       setChaptersText("");
       setUploadTitle("");
       setFileInputKey((current) => current + 1);
-      setChaptersFileInputKey((current) => current + 1);
     } catch (err) {
       setError(err.message);
     }
@@ -108,12 +103,11 @@ export function App() {
   return (
     <main className="container">
       <h1>Splitty MVP</h1>
-      <p>Download audio locally, then upload the audio file with optional chapter text to preview and export splits.</p>
+      <p>Upload an audio file, optionally paste manual chapter text, preview the split points, then export the clips as a zip.</p>
 
       <section className="panel">
         <h2>Upload Audio File</h2>
-        <p className="hint">Run the local helper first if you want YouTube chapters preserved without asking the hosted backend to fetch media.</p>
-        <p className="hint"><code>python3 scripts/download_youtube_local.py &lt;youtube-url&gt;</code></p>
+        <p className="hint">Paste chapter timestamps only when you already know them. Otherwise the backend will split using signal-processing fallbacks.</p>
         <form onSubmit={onUploadSubmit} className="stack-form">
           <input
             key={fileInputKey}
@@ -126,12 +120,6 @@ export function App() {
             placeholder="Optional title"
             value={uploadTitle}
             onChange={(event) => setUploadTitle(event.target.value)}
-          />
-          <input
-            key={chaptersFileInputKey}
-            type="file"
-            accept=".txt,text/plain"
-            onChange={(event) => setChaptersFile(event.target.files?.[0] || null)}
           />
           <textarea
             placeholder="Optional chapter text (for example: 00:00 Intro)"
@@ -158,7 +146,6 @@ export function App() {
         <section className="panel">
           <h2>Preview</h2>
           <p><strong>Video:</strong> {preview.video.title || "Untitled"}</p>
-          <p><strong>Source:</strong> Uploaded file</p>
           <SegmentTable segments={preview.segments} names={names} onNameChange={onNameChange} />
           <button onClick={onExport} disabled={!canExport}>Export zip</button>
         </section>

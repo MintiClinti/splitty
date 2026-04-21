@@ -29,10 +29,10 @@ def test_create_upload_job_accepts_audio_file(monkeypatch, tmp_path):
     assert response.json() == {"jobId": "job-123", "status": "pending"}
     assert recorded["saved_job_id"] == "job-123"
     assert recorded["fn"] == "run_uploaded_analysis"
-    assert recorded["args"] == ("job-123", str(tmp_path / "job-123.mp3"), "Demo Upload")
+    assert recorded["args"] == ("job-123", str(tmp_path / "job-123.mp3"), "Demo Upload", None)
 
 
-def test_create_upload_job_accepts_chapter_sidecar(monkeypatch, tmp_path):
+def test_create_upload_job_accepts_manual_chapter_text(monkeypatch, tmp_path):
     client = TestClient(app)
     recorded = {}
 
@@ -49,11 +49,8 @@ def test_create_upload_job_accepts_chapter_sidecar(monkeypatch, tmp_path):
 
     response = client.post(
         "/api/v1/jobs",
-        files={
-            "file": ("demo.mp3", b"fake-audio", "audio/mpeg"),
-            "chapters_file": ("demo.chapters.txt", b"00:00 Intro\n03:00 Song A\n", "text/plain"),
-        },
-        data={"title": "Demo Upload"},
+        files={"file": ("demo.mp3", b"fake-audio", "audio/mpeg")},
+        data={"title": "Demo Upload", "chapters_text": "00:00 Intro\n03:00 Song A"},
     )
 
     assert response.status_code == 200

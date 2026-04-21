@@ -19,13 +19,8 @@ def _build_upload_metadata(source_path: Path, title: str | None, chapters_text: 
     }
 
 
-def _finalize_analysis(job_id: str, source_path: Path, metadata: dict, youtube_url: str | None = None) -> None:
-    video = repository.create_video(
-        job_id=job_id,
-        youtube_url=youtube_url or "",
-        metadata=metadata,
-        source_path=str(source_path),
-    )
+def _finalize_analysis(job_id: str, source_path: Path, metadata: dict) -> None:
+    video = repository.create_video(job_id=job_id, metadata=metadata, source_path=str(source_path))
 
     repository.update_job(job_id, stage="segmenting", progress=55)
     duration_sec = metadata.get("duration")

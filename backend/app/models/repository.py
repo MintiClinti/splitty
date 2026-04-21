@@ -42,11 +42,11 @@ def get_job(job_id: str) -> dict[str, Any] | None:
         return conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
 
 
-def create_video(job_id: str, youtube_url: str, metadata: dict[str, Any], source_path: str | None) -> dict[str, Any]:
+def create_video(job_id: str, metadata: dict[str, Any], source_path: str | None, source_ref: str = "") -> dict[str, Any]:
     video = {
         "id": str(uuid.uuid4()),
         "job_id": job_id,
-        "youtube_url": youtube_url,
+        "youtube_url": source_ref,
         "youtube_video_id": metadata.get("id"),
         "title": metadata.get("title"),
         "duration_sec": metadata.get("duration"),

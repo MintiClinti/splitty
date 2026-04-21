@@ -13,3 +13,14 @@ def test_build_upload_metadata_uses_file_metadata(monkeypatch, tmp_path):
     assert metadata["description"] == "00:00 Intro"
     assert metadata["source"] == "upload"
     assert metadata["original_filename"] == "demo-track.m4a"
+
+
+def test_build_upload_metadata_defaults_to_signal_processing(monkeypatch, tmp_path):
+    source_path = tmp_path / "demo-track.m4a"
+    source_path.write_text("placeholder")
+    monkeypatch.setattr("app.services.analysis_service.probe_duration", lambda _: 300.0)
+
+    metadata = _build_upload_metadata(source_path, None, None)
+
+    assert metadata["title"] == "demo-track"
+    assert metadata["description"] == ""

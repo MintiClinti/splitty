@@ -9,6 +9,3 @@ frontend/
 .idea/
 backend/data/
 *.mp3
-cookies.txt
-cookies_fresh.txt
-yt_auth.txt

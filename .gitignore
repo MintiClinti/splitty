@@ -12,7 +12,3 @@ data/tmp/
 backend/.env
 frontend/.npm-cache/
 backend/data/
-cookies.txt
-cookies_fresh.txt
-yt_cookies.txt
-*cookies*
